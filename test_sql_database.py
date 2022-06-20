@@ -3,29 +3,10 @@ import sqlite3
 import unittest
 
 import sql_database as sql
+from utils_test import TestCase
 
 
-def remove_extra_space(s):
-    s = ' '.join(s.split())
-    return s
-
-
-def assertEqualStringQueries(self, first, second, msg=None):
-    """
-    Compare two query strings
-    """
-    self.assertEqual(
-        remove_extra_space(first),
-        remove_extra_space(second),
-        msg
-    )
-
-
-# custom assertion
-unittest.TestCase.assertEqualStringQueries = assertEqualStringQueries
-
-
-class TestSQLTable(unittest.TestCase):
+class TestSQLTable(TestCase):
 
     def setUp(self):
         self.filename = 'test.db'
@@ -62,7 +43,7 @@ class TestSQLTable(unittest.TestCase):
         )
 
 
-class TestSQLDatabase(unittest.TestCase):
+class TestSQLDatabase(TestCase):
 
     def setUp(self):
         self.filename = 'test.db'

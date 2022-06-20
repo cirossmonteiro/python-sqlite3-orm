@@ -1,8 +1,9 @@
+from __future__ import annotations
 import enum
 import sqlite3
 import typing
 
-from __future__ import annotations
+
 
 
 class SQLITE3_TYPES(enum.Enum):
