@@ -19,6 +19,12 @@ class TestSQLTable(TestCase):
             'number_numeric': float,
             'string_text':  str,
         }
+        self.row = {
+                    'number_integer': 1,
+                    'number_float': 2.1,
+                    'number_numeric': 2.2,
+                    'string_text': 'Hello, world!'
+                }
         self.instance = sql.SQLTable(self.cursor, self.tablename, self.schema)
 
     def tearDown(self):
@@ -38,9 +44,24 @@ class TestSQLTable(TestCase):
                     number_float REAL ,
                     number_numeric REAL ,
                     string_text TEXT
-                )
+                );
             """
         )
+
+    def test_insert(self):
+        self.assertEqualStringQueries(
+            self.instance._query_insert_into([
+                self.row
+            ]),
+            f"""
+                INSERT INTO {self.tablename} VALUES
+                (1 , 2.1 , 2.2 , 'Hello, world!');
+            """
+        )
+        self.instance.insert_into([self.row])
+        self.assertEqual(self.instance.select(1), [tuple(self.row.values())])
+
+        
 
 
 class TestSQLDatabase(TestCase):

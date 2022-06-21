@@ -14,5 +14,6 @@ def assertEqualStringQueries(self, first, second, msg=None):
         msg
     )
 
+
 # custom assertion
 TestCase.assertEqualStringQueries = assertEqualStringQueries

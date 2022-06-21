@@ -4,8 +4,6 @@ import sqlite3
 import typing
 
 
-
-
 class SQLITE3_TYPES(enum.Enum):
     INTEGER = 'INTEGER'
     BLOB = 'BLOB'
@@ -35,18 +33,28 @@ class SQLTable:
 
     def _query_create_table(self, schema):
         schema_str = ' , '.join([f"{column_name} {MAP_SQLITE3_PYTHON_TYPES[column_type].value}\n" for column_name, column_type in schema.items()])
-        return f"""CREATE TABLE {self.tablename} ( {schema_str} )"""
+        return f"""CREATE TABLE {self.tablename} ( {schema_str} );"""
 
     def _create_table(self, schema):
         self.cursor.execute(self._query_create_table(schema))
 
-    # todo
-    def insert(self, row: dict):
-        return
+    def _query_insert_into(self, rows: list[typing.Dict]):
+        # todo: not all columns
+        def build_row_str(row):
+            return " , ".join([f"\'{value}\'" if type(value) == str else str(value) for value in row.values()])
+        rows_str = [f"({build_row_str(row)})" for row in rows]
+        values_str = ' , '.join(rows_str)
+        return f"""INSERT INTO {self.tablename} VALUES {values_str};"""
     
-    # todo
-    def insert(self, rows: typing.List[dict]):
-        return
+    def insert_into(self, values: list[typing.Dict]):
+        self.cursor.execute(self._query_insert_into(values))
+
+    def _query_select(self, limit=10):
+        return f"""SELECT * FROM {self.tablename} LIMIT {limit};"""        
+
+    def select(self, limit=10):
+        self.cursor.execute(self._query_select(limit))
+        return self.cursor.fetchall()
 
     # todo
     def __eq__(self, sqltable: SQLTable):
