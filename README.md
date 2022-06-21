@@ -1,4 +1,4 @@
-# A simple, naive and SQLite3-compatible Python ORM
+# A one-table-only and SQLite3-compatible Python ORM
 
 - two classes: SQLTable, SQLDatabase
 - current supported one-table operations: CREATE TABLE

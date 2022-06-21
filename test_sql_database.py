@@ -48,7 +48,7 @@ class TestSQLTable(TestCase):
             """
         )
 
-    def test_insert(self):
+    def test_insert_select(self):
         self.assertEqualStringQueries(
             self.instance._query_insert_into([
                 self.row
@@ -58,8 +58,8 @@ class TestSQLTable(TestCase):
                 (1 , 2.1 , 2.2 , 'Hello, world!');
             """
         )
-        self.instance.insert_into([self.row])
-        self.assertEqual(self.instance.select(1), [tuple(self.row.values())])
+        self.instance.insert_into([self.row, self.row])
+        self.assertEqual(self.instance.select(2), [tuple(self.row.values()), tuple(self.row.values())])
 
         
 

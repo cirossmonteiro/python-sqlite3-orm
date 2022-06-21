@@ -18,6 +18,12 @@ MAP_SQLITE3_PYTHON_TYPES = {
     str: SQLITE3_TYPES.TEXT
 }
 
+class SQLTableSlice:
+    
+    def __init__(self, cursor: sqlite3.Cursor, indexes: slice):
+        self.cursor = cursor
+        self.indexes = indexes
+
 
 class SQLTable:
 
@@ -49,12 +55,18 @@ class SQLTable:
     def insert_into(self, values: list[typing.Dict]):
         self.cursor.execute(self._query_insert_into(values))
 
-    def _query_select(self, limit=10):
-        return f"""SELECT * FROM {self.tablename} LIMIT {limit};"""        
+    def _query_select(self, limit=10, offset=0):
+        return f"""SELECT * FROM {self.tablename} LIMIT {limit} OFFSET {offset};"""        
 
-    def select(self, limit=10):
-        self.cursor.execute(self._query_select(limit))
+    def select(self, limit=10, offset=0):
+        self.cursor.execute(self._query_select(limit, offset))
         return self.cursor.fetchall()
+
+    def __getitem__(self, params: list[slice, int]):
+        start = params
+        if type(params) == slice:
+            start, end = params.start, params.stop
+        return self.select(start, end)
 
     # todo
     def __eq__(self, sqltable: SQLTable):
