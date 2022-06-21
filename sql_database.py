@@ -20,8 +20,8 @@ MAP_SQLITE3_PYTHON_TYPES = {
 
 class SQLTableSlice:
     
-    def __init__(self, cursor: sqlite3.Cursor, indexes: slice):
-        self.cursor = cursor
+    def __init__(self, table: SQLTable, indexes: slice):
+        self.table = table
         self.indexes = indexes
 
 
