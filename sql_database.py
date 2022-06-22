@@ -62,8 +62,8 @@ class SQLTable:
         self.cursor.execute(self._query_select(limit, offset))
         return self.cursor.fetchall()
 
-    def __getitem__(self, params: list[slice, int]):
-        start = params
+    def __getitem__(self, params: typing.Union[slice, int]):
+        start, end = params, None
         if type(params) == slice:
             start, end = params.start, params.stop
         return self.select(start, end)
