@@ -92,6 +92,10 @@ class TestSQLTable(TestCase):
             """
         )
 
+        # testing SQLTable._load_schema()
+        new_instance = sql.SQLTable(self.cursor, self.tablename)
+        self.assertEqual(self.instance.schema, new_instance.schema)
+
     def test_insert_select(self):
         self.assertEqualStringQueries(
             self.instance._query_insert_into([

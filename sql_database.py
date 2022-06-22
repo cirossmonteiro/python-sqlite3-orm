@@ -1,5 +1,6 @@
 from __future__ import annotations
 import enum
+import re
 import sqlite3
 import typing
 
@@ -12,11 +13,19 @@ class SQLITE3_TYPES(enum.Enum):
     TEXT = 'TEXT'
 
 
-MAP_SQLITE3_PYTHON_TYPES = {
-    int: SQLITE3_TYPES.INTEGER,
-    float: SQLITE3_TYPES.REAL,
-    str: SQLITE3_TYPES.TEXT
+MAP_TYPES_PYTHON_TO_SQLITE3 = {
+    int: SQLITE3_TYPES.INTEGER.value,
+    float: SQLITE3_TYPES.REAL.value,
+    str: SQLITE3_TYPES.TEXT.value
 }
+
+MAP_TYPES_SQLITE3_TO_PYTHON = {
+    SQLITE3_TYPES.INTEGER.value: int,
+    SQLITE3_TYPES.REAL.value: float,
+    SQLITE3_TYPES.TEXT.value: str
+}
+
+SCHEMA_TYPES_REGEX = r"((?P<name>\w+) (?P<type>INTEGER|REAL|TEXT))"
 
 class SQLTableSlice:
     
@@ -37,11 +46,21 @@ class SQLTable:
         self.cursor = cursor
         self.tablename = tablename
         self.schema = schema
-        if schema is not None:
+        if schema is None:
+            self._load_schema()
+        else:
             self._create_table(schema)
 
+    def _load_schema(self):
+        self.cursor.execute(f'select sql from sqlite_master where type = \'table\' and name = \'{self.tablename}\';')
+        describe_str = self.cursor.fetchone()[0];
+        patt = re.compile(SCHEMA_TYPES_REGEX)
+        self.schema = {}
+        for group in patt.finditer(describe_str):
+            self.schema[group[2]] = MAP_TYPES_SQLITE3_TO_PYTHON[group[3]]
+
     def _query_create_table(self, schema):
-        schema_str = ' , '.join([f"{column_name} {MAP_SQLITE3_PYTHON_TYPES[column_type].value}\n" for column_name, column_type in schema.items()])
+        schema_str = ' , '.join([f"{column_name} {MAP_TYPES_PYTHON_TO_SQLITE3[column_type]}\n" for column_name, column_type in schema.items()])
         return f"""CREATE TABLE {self.tablename} ( {schema_str} );"""
 
     def _create_table(self, schema):
