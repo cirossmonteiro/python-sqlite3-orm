@@ -24,6 +24,8 @@ class SQLTableSlice:
         self.table = table
         self.indexes = indexes
 
+    def values(self):
+        return self.table.select(self.indexes.stop-self.indexes.start, self.indexes.start)
 
 class SQLTable:
 
@@ -34,6 +36,7 @@ class SQLTable:
         """
         self.cursor = cursor
         self.tablename = tablename
+        self.schema = schema
         if schema is not None:
             self._create_table(schema)
 
@@ -64,9 +67,10 @@ class SQLTable:
 
     def __getitem__(self, params: typing.Union[slice, int]):
         start, end = params, None
-        if type(params) == slice:
-            start, end = params.start, params.stop
-        return self.select(start, end)
+        if type(params) != slice:
+            params = slice(params, params+1)
+        # return self.select(end-start, start)
+        return SQLTableSlice(self, params)
 
     # todo
     def __eq__(self, sqltable: SQLTable):
