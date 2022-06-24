@@ -1,7 +1,7 @@
 import sqlite3
 
 from test_commons import TestCase
-import sql_database as sql
+import sql
 
 class TestSQLTable(TestCase):
     

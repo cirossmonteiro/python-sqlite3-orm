@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import enum
 import re
 import sqlite3
 import typing
 
+import sql
 
 class SQLITE3_TYPES(enum.Enum):
     INTEGER = 'INTEGER'
@@ -27,17 +29,8 @@ MAP_TYPES_SQLITE3_TO_PYTHON = {
 
 SCHEMA_TYPES_REGEX = r"((?P<name>\w+) (?P<type>INTEGER|REAL|TEXT))"
 
-class SQLTableSlice:
-    
-    def __init__(self, table: SQLTable, indexes: slice):
-        self.table = table
-        self.indexes = indexes
-
-    def values(self):
-        return self.table.select(self.indexes.stop-self.indexes.start, self.indexes.start)
-
 class SQLTable:
-
+    
     def __init__(self, cursor: sqlite3.Cursor, tablename: str, schema: typing.Union[dict, None] = None):
         """
         cursor: Cursor object (sqlite3)
@@ -89,7 +82,7 @@ class SQLTable:
         if type(params) != slice:
             params = slice(params, params+1)
         # return self.select(end-start, start)
-        return SQLTableSlice(self, params)
+        return sql.SQLTableSlice(self, params)
 
     # todo
     def __eq__(self, sqltable: SQLTable):
@@ -98,30 +91,3 @@ class SQLTable:
         """
         return
 
-
-class SQLDatabase:
-    
-    def __init__(self, filename = 'sqlite3.db'):
-        self.filename = filename
-        self.connection = sqlite3.connect(filename)
-        self.cursor = self.connection.cursor()
-
-    def _query_table_exists(self, name):
-        return f"""SELECT name FROM sqlite_master WHERE type='table' AND name='{name}'"""
-
-    def table_exists(self, name):
-        self.cursor.execute(self._query_table_exists(name))
-        return self.cursor.fetchone() is not None
-    
-    def create_table(self, name, schema):
-        return SQLTable(self.cursor, name, schema)
-
-    def __getitem__(self, name: str):
-        if self.table_exists(name):
-            return SQLTable(self.cursor, name)
-        # todo: raise error if table doesn't exist
-        return None
-
-    def __setitem__(self, name: str, schema: dict):
-        # todo: raise error for bad schema
-        return self.create_table(name, schema)

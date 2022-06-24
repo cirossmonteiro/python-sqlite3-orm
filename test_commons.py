@@ -1,7 +1,7 @@
 import os
 import unittest
 
-import sql_database as sql
+import sql
 
 def remove_extra_space(s):
     s = ' '.join(s.split())
