@@ -23,6 +23,7 @@
 *class* sql.**SQLTableSlice**(*table, indexes*)
 
 *class* test_commons.**TestCase**
+
 &nbsp;&nbsp;&nbsp;&nbsp;**assertEqualStringQueries**
   
 
