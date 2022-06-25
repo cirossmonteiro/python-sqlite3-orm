@@ -70,11 +70,17 @@ class SQLTable:
     def insert_into(self, values: list[typing.Dict]):
         self.cursor.execute(self._query_insert_into(values))
 
-    def _query_select(self, limit=10, offset=0):
-        return f"""SELECT * FROM {self.tablename} LIMIT {limit} OFFSET {offset};"""        
+    def _query_select(self, limit=10, offset=0, **kwargs):
+        columns = kwargs.get('columns', [])
+        columns_str = '*' if len(columns) == 0 else ','.join(columns)
+        return f"""SELECT {columns_str} FROM {self.tablename} LIMIT {limit} OFFSET {offset};"""        
 
-    def select(self, limit=10, offset=0):
-        self.cursor.execute(self._query_select(limit, offset))
+    def select(self, limit=10, offset=0, **kwargs):
+        columns = kwargs.get('columns', [])
+        for column in columns:
+            if column not in self.schema:
+                raise RuntimeError(f"The column '{column}' doesn't exist on this table.")
+        self.cursor.execute(self._query_select(limit, offset, columns=columns))
         return self.cursor.fetchall()
 
     def __getitem__(self, params: typing.Union[slice, int]):

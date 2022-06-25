@@ -6,5 +6,6 @@ class SQLTableSlice:
         self.table = table
         self.indexes = indexes
 
-    def values(self):
-        return self.table.select(self.indexes.stop-self.indexes.start, self.indexes.start)
+    def values(self, **kwargs):
+        columns = kwargs.get('columns', [])
+        return self.table.select(self.indexes.stop-self.indexes.start, self.indexes.start, columns=columns)

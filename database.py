@@ -4,7 +4,7 @@ import sql
 
 class SQLDatabase:
     
-    def __init__(self, filename = 'sqlite3.db'):
+    def __init__(self, filename='sqlite3.db'):
         self.filename = filename
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
