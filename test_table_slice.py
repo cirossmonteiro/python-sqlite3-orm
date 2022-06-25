@@ -27,6 +27,8 @@ class TestSQLTableSlice(TestCase):
             'start': 1,
             'stop': 6
         }
+        self.column_name = 'number_integer'
+        self.error_column_name = 'number'
     
     def test_init(self):
         slice1 = self.table[self.indexes['one']]
@@ -39,9 +41,12 @@ class TestSQLTableSlice(TestCase):
     
     def test_values(self):
         table_slice = self.table[self.indexes['start']:self.indexes['stop']]
-        self.assertEqual(table_slice.values(columns=['number_integer']), [(row['number_integer'],) for row in self.rows[1:6]])
+        column_values = [(row['number_integer'],) for row in self.rows[1:6]]
+        self.assertEqual(table_slice.values(columns=['number_integer']), column_values)
+        self.assertEqual(table_slice[self.column_name], column_values)
         
         # error - when table doesn't have column with name given
         with self.assertRaises(RuntimeError) as error:    
-            table_slice.values(columns=['number'])
-        self.assertEqual(str(error.exception), f"The column 'number' doesn't exist on this table.")
+            table_slice.values(columns=[self.error_column_name])
+        self.assertEqual(str(error.exception), f"The column '{self.error_column_name}' doesn't exist on this table.")
+
