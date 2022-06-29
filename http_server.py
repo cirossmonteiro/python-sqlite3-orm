@@ -16,7 +16,30 @@ import sql
 HOST = 'localhost'
 PORT = 8080
 
-class HTTPServerHandler(hs.BaseHTTPRequestHandler):
+class BaseHTTPRequestHandler(hs.BaseHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def do_GET(self):
+        def callback(data):
+            raw_data = bytes(json.dumps(data).encode('utf-8'))
+            self.send_response(http.HTTPStatus.OK)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(raw_data)
+
+        self.get(self.path, callback)
+    
+    def do_POST(self):
+        raw_data = self.rfile.peek()
+        data = json.loads(raw_data)
+
+        self.post(self.path, data)
+
+        self.send_response(http.HTTPStatus.OK)
+        self.end_headers()
+
+class HTTPServerHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.filename = kwargs.pop('filename', 'test.db')
         self.db = sql.SQLDatabase(self.filename)
@@ -26,39 +49,26 @@ class HTTPServerHandler(hs.BaseHTTPRequestHandler):
     def exit(self):
         os.remove(self.filename)
 
-    def do_POST(self):
+    def post(self, path, data):
         """
         POST /
         """
-        tablename = self.path[1:]
-        raw_data = self.rfile.peek()
-        data = json.loads(raw_data)
+        tablename = path[1:]
         table = self.db[tablename]
-
         if table is None:
             schema = Schema(mode='row', schema=data)
             self.db[tablename] = schema
 
         self.db[tablename].insert_into([data])
-        data = self.db[tablename].select()
-        self.send_response(http.HTTPStatus.OK)
-        self.end_headers()
 
-    def do_GET(self):
+    def get(self, path, callback):
         """
         GET /
         """
-        tablename = self.path[1:]
+        tablename = path[1:]
         data = self.db[tablename].select()
-
-        raw_data = bytes(json.dumps(data).encode('utf-8'))
-
-        self.send_response(http.HTTPStatus.OK)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
-        self.wfile.write(raw_data)
-
+        callback(data)
+        
 
 class HTTPServer(hs.ThreadingHTTPServer):
     pass
