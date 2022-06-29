@@ -1,4 +1,5 @@
 import sqlite3
+from schema import Schema
 
 from test_commons import TestCase
 import sql
@@ -7,27 +8,27 @@ class TestSQLTable(TestCase):
     
     def setUpExtra(self):
         self.tablename = 'test'
-        self.schema = {
+        self.schema = Schema(schema={
             'number_integer': int,
             'number_float': float,
             'number_numeric': float,
             'string_text':  str,
-        }
+        })
         self.row = {
                     'number_integer': 1,
                     'number_float': 2.1,
                     'number_numeric': 2.2,
                     'string_text': 'Hello, world!'
                 }
-        self.instance = sql.SQLTable(self.cursor, self.tablename, self.schema)
+        self.instance = sql.SQLTable(self.db, self.tablename, self.schema)
 
     def test_init(self):
-        self.assertIsInstance(self.instance.cursor, sqlite3.Cursor)
+        self.assertIsInstance(self.instance.db.cursor, sqlite3.Cursor)
         self.assertIsInstance(self.instance, sql.SQLTable)
 
     def test_query_create_table(self):
         self.assertEqualStringQueries(
-            self.instance._query_create_table(self.schema),
+            self.instance._query_create_table(self.schema.schema),
             f"""
                 CREATE TABLE {self.tablename}
                 (
@@ -40,8 +41,8 @@ class TestSQLTable(TestCase):
         )
 
         # testing SQLTable._load_schema()
-        new_instance = sql.SQLTable(self.cursor, self.tablename)
-        self.assertEqual(self.instance.schema, new_instance.schema)
+        new_instance = sql.SQLTable(self.db, self.tablename)
+        self.assertEqual(self.instance.schema.schema, new_instance.schema.schema)
 
     def test_insert_select(self):
         self.assertEqualStringQueries(
@@ -55,3 +56,4 @@ class TestSQLTable(TestCase):
         )
         self.instance.insert_into([self.row, self.row])
         self.assertEqual(self.instance.select(2), [tuple(self.row.values()), tuple(self.row.values())])
+    

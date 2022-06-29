@@ -1,3 +1,4 @@
+from schema import Schema
 from test_commons import TestCase
 import sql
 
@@ -5,12 +6,12 @@ class TestSQLTableSlice(TestCase):
     
     def setUpExtra(self):
         self.tablename = 'test'
-        self.schema = {
+        self.schema = Schema(schema={
             'number_integer': int,
             'number_float': float,
             'number_numeric': float,
             'string_text':  str,
-        }
+        })
         self.rows = [
             {
                 'number_integer': n,
@@ -20,7 +21,7 @@ class TestSQLTableSlice(TestCase):
             }
             for n in range(10)
         ]
-        self.table = sql.SQLTable(self.cursor, self.tablename, self.schema)
+        self.table = sql.SQLTable(self.db, self.tablename, self.schema)
         self.table.insert_into(self.rows)
         self.indexes = {
             'one': 0,

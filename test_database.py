@@ -1,4 +1,5 @@
 import sqlite3
+from schema import Schema
 
 from test_commons import TestCase
 import sql
@@ -7,12 +8,12 @@ class TestSQLDatabase(TestCase):
     
     def setUpExtra(self):
         self.tablename = 'test'
-        self.schema = {
+        self.schema = Schema(schema={
             'number_integer': int,
             'number_float': float,
             'number_numeric': float,
             'string_text':  str,
-        }
+        })
 
     def test_init(self):
         self.assertEqual(self.db.filename, self.filename)

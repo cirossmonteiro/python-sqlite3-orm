@@ -3,7 +3,9 @@ from __future__ import annotations
 import enum
 import re
 import sqlite3
+from this import d
 import typing
+from schema import Schema
 
 import sql
 
@@ -31,33 +33,36 @@ SCHEMA_TYPES_REGEX = r"((?P<name>\w+) (?P<type>INTEGER|REAL|TEXT))"
 
 class SQLTable:
     
-    def __init__(self, cursor: sqlite3.Cursor, tablename: str, schema: typing.Union[dict, None] = None):
+    def __init__(self, db: sql.SQLDatabase, tablename: str, schema: Schema = None):
         """
         cursor: Cursor object (sqlite3)
         table_name: name for table (even if already exists)
         """
-        self.cursor = cursor
+        self.db = db
         self.tablename = tablename
-        self.schema = schema
+
         if schema is None:
-            self._load_schema()
+            schema = self._load_schema()
         else:
-            self._create_table(schema)
+            self._create_table(schema.schema)
+
+        self.schema = schema
 
     def _load_schema(self):
-        self.cursor.execute(f'select sql from sqlite_master where type = \'table\' and name = \'{self.tablename}\';')
-        describe_str = self.cursor.fetchone()[0];
+        self.db.cursor.execute(f'SELECT sql FROM sqlite_master WHERE type = \'table\' AND name = \'{self.tablename}\';')
+        describe_str = self.db.cursor.fetchone()[0];
         patt = re.compile(SCHEMA_TYPES_REGEX)
-        self.schema = {}
+        schema = {}
         for group in patt.finditer(describe_str):
-            self.schema[group[2]] = MAP_TYPES_SQLITE3_TO_PYTHON[group[3]]
+            schema[group[2]] = MAP_TYPES_SQLITE3_TO_PYTHON[group[3]]
+        return Schema(schema=schema)
 
     def _query_create_table(self, schema):
         schema_str = ' , '.join([f"{column_name} {MAP_TYPES_PYTHON_TO_SQLITE3[column_type]}\n" for column_name, column_type in schema.items()])
         return f"""CREATE TABLE {self.tablename} ( {schema_str} );"""
 
     def _create_table(self, schema):
-        self.cursor.execute(self._query_create_table(schema))
+        self.db.cursor.execute(self._query_create_table(schema))
 
     def _query_insert_into(self, rows: list[typing.Dict]):
         # todo: not all columns
@@ -68,7 +73,8 @@ class SQLTable:
         return f"""INSERT INTO {self.tablename} VALUES {values_str};"""
     
     def insert_into(self, values: list[typing.Dict]):
-        self.cursor.execute(self._query_insert_into(values))
+        self.db.cursor.execute(self._query_insert_into(values))
+        self.db.connection.commit()
 
     def _query_select(self, limit=10, offset=0, **kwargs):
         columns = kwargs.get('columns', [])
@@ -78,10 +84,11 @@ class SQLTable:
     def select(self, limit=10, offset=0, **kwargs):
         columns = kwargs.get('columns', [])
         for column in columns:
-            if column not in self.schema:
+            if column not in self.schema.schema:
                 raise RuntimeError(f"The column '{column}' doesn't exist on this table.")
-        self.cursor.execute(self._query_select(limit, offset, columns=columns))
-        return self.cursor.fetchall()
+        query = self._query_select(limit, offset, columns=columns)
+        self.db.cursor.execute(query)
+        return self.db.cursor.fetchall()
 
     def __getitem__(self, params: typing.Union[slice, int]):
         start, end = params, None
@@ -96,4 +103,9 @@ class SQLTable:
         compare schemas and rows
         """
         return
+    
+    def count(self):
+        query = f"""SELECT COUNT(*) FROM {self.tablename}"""
+        self.db.cursor.execute(query)
+        return self.db.cursor.fetchall()
 

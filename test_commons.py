@@ -14,7 +14,6 @@ class TestCase(unittest.TestCase):
     def setUp(self):
         self.filename = 'test.db'
         self.db = sql.SQLDatabase(self.filename)
-        self.cursor = self.db.cursor
         if self.setUpExtra is not None:
             self.setUpExtra()
     
@@ -30,3 +29,7 @@ class TestCase(unittest.TestCase):
             remove_extra_space(second),
             msg
         )
+
+
+#class HTTPServerTestCase(unittest.TestCase):
+

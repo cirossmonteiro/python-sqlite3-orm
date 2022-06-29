@@ -15,14 +15,14 @@ class SQLTableSlice:
 
     def __getitem__(self, params: typing.Union[str,list,int,slice]):
         """
-        params: name of column(str), list of column names
+        params: name of column(str), list of column names, nth-column, interval of columns
         """
         columns = None
         if type(params) == str:
             columns = [params]
 
         if type(params) in [int, slice]:
-            columns = list(self.table.schema.keys())[params]
+            columns = list(self.table.schema.schema.keys())[params]
             if type(params) == int:
                 columns = [columns]
         
