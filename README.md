@@ -25,17 +25,9 @@
 *class* test_commons.**TestCase**
 
 &nbsp;&nbsp;&nbsp;&nbsp;**assertEqualStringQueries**
-  
 
-## How to test
 
-  
-
-Just run `python3 test_main.py`
-
-  
-
-## How to develop
+## How to develop (or test)
 
   
 
@@ -47,4 +39,8 @@ Just run `python3 test_main.py`
 
   
 
-2- Run `nodemon --exec python3 test_main.py`
+2- You'll need two terminal windows:
+
+2.1- First terminal: `nodemon --exec python3 http_server.py`
+
+2.2- Second terminal: `nodemon --exec python3 test_main.py`
