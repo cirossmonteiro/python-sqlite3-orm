@@ -107,5 +107,8 @@ class SQLTable:
     def count(self):
         query = f"""SELECT COUNT(*) FROM {self.tablename}"""
         self.db.cursor.execute(query)
-        return self.db.cursor.fetchall()
+        return self.db.cursor.fetchall()[0][0]
+
+    def __len__(self):
+        return self.count()
 

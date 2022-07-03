@@ -20,6 +20,7 @@ class TestSQLTable(TestCase):
                     'number_numeric': 2.2,
                     'string_text': 'Hello, world!'
                 }
+        self.rows = [self.row, self.row]
         self.instance = sql.SQLTable(self.db, self.tablename, self.schema)
 
     def test_init(self):
@@ -54,6 +55,8 @@ class TestSQLTable(TestCase):
                 (1 , 2.1 , 2.2 , 'Hello, world!');
             """
         )
-        self.instance.insert_into([self.row, self.row])
+        self.instance.insert_into(self.rows)
         self.assertEqual(self.instance.select(2), [tuple(self.row.values()), tuple(self.row.values())])
+        self.assertEqual(self.instance.count(), len(self.rows))
+        self.assertEqual(len(self.instance), len(self.rows))
     
