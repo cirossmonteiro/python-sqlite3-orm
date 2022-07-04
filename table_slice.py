@@ -12,6 +12,12 @@ class SQLTableSlice:
     def values(self, **kwargs):
         columns = kwargs.get('columns', [])
         return self.table.select(self.indexes.stop-self.indexes.start, self.indexes.start, columns=columns)
+    
+    def count(self):
+        return len(self.values())
+    
+    def __len__(self):
+        return self.count()
 
     def __getitem__(self, params: typing.Union[str,list,int,slice]):
         """

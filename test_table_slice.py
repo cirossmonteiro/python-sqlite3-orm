@@ -39,6 +39,10 @@ class TestSQLTableSlice(TestCase):
         slice2 = self.table[self.indexes['start']:self.indexes['stop']]
         self.assertIsInstance(slice2, sql.SQLTableSlice)
         self.assertEqual(slice2.values(), [tuple(self.rows[n].values()) for n in range(self.indexes['start'], self.indexes['stop'])])
+
+        d = self.indexes['stop']-self.indexes['start']
+        self.assertEqual(slice2.count(), d)
+        self.assertEqual(len(slice2), d)
     
     def test_values(self):
         table_slice = self.table[self.indexes['start']:self.indexes['stop']]
