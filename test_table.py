@@ -59,4 +59,7 @@ class TestSQLTable(TestCase):
         self.assertEqual(self.instance.select(2), [tuple(self.row.values()), tuple(self.row.values())])
         self.assertEqual(self.instance.count(), len(self.rows))
         self.assertEqual(len(self.instance), len(self.rows))
+
+        column_values = [tuple([row['number_integer']]) for row in self.rows]
+        self.assertEqual(self.instance.number_integer, column_values)
     

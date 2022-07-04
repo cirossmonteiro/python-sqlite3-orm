@@ -112,3 +112,6 @@ class SQLTable:
     def __len__(self):
         return self.count()
 
+    def __getattr__(self, column_name):
+        if column_name in self.schema.columns:
+            return self.select(len(self), columns=[column_name])

@@ -7,14 +7,35 @@ class Schema:
         if mode == 'schema':
             self.schema = schema
         elif mode == 'row':
-            self.schema = self.__infer(schema)
+            self.schema = self._infer(schema)
         return
     
-    def __infer(self, row):
+    def _infer(self, row):
         obj = {
             key: type(value)
             for key, value in row.items()
         }
         return obj
 
-    # todo: def __contains__(self): # operator 'in'
+    def __len__(self):
+        return len(self.schema)
+
+    def is_valid(self, row):
+        if len(row) != len(self.schema):
+            return False
+
+        for key, value in self.schema.items():
+            if key in row:
+                if type(row[key]) != value:
+                    return False
+            else:
+                return False
+
+        return True
+
+    def __getattr__(self, name):
+        if name == 'columns':
+            return tuple(self.schema.keys())
+
+    def __contains__(self, item):
+        return item in self.schema.keys()
