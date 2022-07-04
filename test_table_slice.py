@@ -43,6 +43,7 @@ class TestSQLTableSlice(TestCase):
     def test_values(self):
         table_slice = self.table[self.indexes['start']:self.indexes['stop']]
         column_values = [(row['number_integer'],) for row in self.rows[1:6]]
+        all_columns_values = [tuple(row.values()) for row in self.rows[1:6]]
 
         # values(columns=list)
         self.assertEqual(table_slice.values(columns=['number_integer']), column_values)
@@ -52,6 +53,9 @@ class TestSQLTableSlice(TestCase):
 
         # type(params) == int - accessing by schema
         self.assertEqual(table_slice[0], column_values)
+
+        # all columns
+        self.assertEqual(table_slice[:], all_columns_values)
 
         # type(params) == list(str)
         self.assertEqual(table_slice[[self.column_name]], column_values)
