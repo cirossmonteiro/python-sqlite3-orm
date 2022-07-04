@@ -41,5 +41,6 @@ class SQLTableSlice:
             raise RuntimeError(f"Bad value for getitem: {type(params)}.")
         else:
             return self.values(columns=columns)
-
-        
+    
+    def __getattr__(self, name):
+        return self.values(columns=[name])

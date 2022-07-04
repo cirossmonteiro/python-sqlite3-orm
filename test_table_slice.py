@@ -54,6 +54,7 @@ class TestSQLTableSlice(TestCase):
 
         # type(params) == str
         self.assertEqual(table_slice[self.column_name], column_values)
+        self.assertEqual(table_slice.number_integer, column_values)
 
         # type(params) == int - accessing by schema
         self.assertEqual(table_slice[0], column_values)
