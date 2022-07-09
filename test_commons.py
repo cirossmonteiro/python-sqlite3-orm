@@ -33,3 +33,6 @@ class TestCase(unittest.TestCase):
 
 #class HTTPServerTestCase(unittest.TestCase):
 
+def assertEqualUnorderedDicts(dict1, dict2):
+    if dict1.keys() == dict2.keys():
+        return False
