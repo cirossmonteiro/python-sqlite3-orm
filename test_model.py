@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from model import Model
-from schema import Schema, Field, IntField, FloatField, StringField
+from field import IntField, FloatField, StringField
 from utils import SQLITE3_TYPES
 
 class TestModel(TestCase):
