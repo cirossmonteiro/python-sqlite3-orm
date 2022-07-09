@@ -39,7 +39,7 @@ class StringField(Field):
     create_type = SQLITE3_TYPES.TEXT.value
 
     def validate(self, value):
-        return type(value ) == str
+        return type(value) == str
 
 
 class NumberField(Field):

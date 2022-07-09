@@ -1,12 +1,12 @@
-from unittest import TestCase
-
+import field
 from model import Model
-from field import IntField, FloatField, StringField
+import sql
+from test_commons import TestCase
 from utils import SQLITE3_TYPES
 
 class TestModel(TestCase):
     
-    def setUp(self):
+    def setUpExtra(self):
         # todo: think about order in dicts
         self.schema = {
             'field_floatfield': SQLITE3_TYPES.REAL.value,
@@ -14,12 +14,14 @@ class TestModel(TestCase):
             'field_stringfield': SQLITE3_TYPES.TEXT.value,
         }
         class TestModel(Model):
-            field_intfield = IntField()
-            field_floatfield = FloatField()
-            field_stringfield = StringField()
+            field_intfield = field.IntField()
+            field_floatfield = field.FloatField()
+            field_stringfield = field.StringField()
         
         self.model = TestModel
-        self.instance = self.model()
+        self.instance = self.model(self.db)
 
     def test_model(self):
-        self.assertEqual(self.schema, self.instance.schema_sqlite())
+        self.assertIsInstance(self.instance.objects, sql.SQLTable)
+        self.assertEqualUnorderedDicts(self.schema, self.instance.schema_sqlite())
+    

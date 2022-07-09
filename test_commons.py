@@ -30,9 +30,13 @@ class TestCase(unittest.TestCase):
             msg
         )
 
+    def assertEqualUnorderedDicts(self, first: dict, second: dict, msg=None):
+        self.assertEqual(first.keys(), second.keys(), msg)
+        for key in first.keys():
+            self.assertEqual(first[key], second[key], msg)
+        
+            
+
 
 #class HTTPServerTestCase(unittest.TestCase):
 
-def assertEqualUnorderedDicts(dict1, dict2):
-    if dict1.keys() == dict2.keys():
-        return False
