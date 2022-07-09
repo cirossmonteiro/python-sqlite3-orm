@@ -1,5 +1,3 @@
-import field
-from model import Model
 import sql
 from test_commons import TestCase
 from utils import SQLITE3_TYPES
@@ -13,10 +11,10 @@ class TestModel(TestCase):
             'field_intfield': SQLITE3_TYPES.INTEGER.value,
             'field_stringfield': SQLITE3_TYPES.TEXT.value,
         }
-        class TestModel(Model):
-            field_intfield = field.IntField()
-            field_floatfield = field.FloatField()
-            field_stringfield = field.StringField()
+        class TestModel(sql.Model):
+            field_intfield = sql.fields.IntField()
+            field_floatfield = sql.fields.FloatField()
+            field_stringfield = sql.fields.StringField()
         
         self.model = TestModel
         self.instance = self.model(self.db)

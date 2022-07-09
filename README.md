@@ -19,12 +19,22 @@
 
 *class* sql.**SQLTable**(*cursor, tablename, schema=None*)
 
+NEW *class* sql.**Field**(*required=True, default=None*)
 
-*class* sql.**SQLTableSlice**(*table, indexes*)
+NEW *class* sql.**Model**(*db: SQLDatabase*)
+
+```
+class TestModel(sql.Model):
+    field_intfield = sql.fields.IntField()
+    field_floatfield = sql.fields.FloatField()
+    field_stringfield = sql.fields.StringField()
+```
 
 *class* test_commons.**TestCase**
 
 &nbsp;&nbsp;&nbsp;&nbsp;**assertEqualStringQueries**
+
+&nbsp;&nbsp;&nbsp;&nbsp;**assertEqualUnorderedDicts**
 
 
 ## How to develop (or test)
