@@ -2,7 +2,7 @@ import abc
 
 from utils import SQLITE3_TYPES
 
-class Field:
+class Field(metaclass=abc.ABCMeta):
     def __init__(self, required=True, default=None):
         if required and default is not None:
             raise RuntimeWarning("You should't need to set a default value for a required field.")
@@ -30,9 +30,16 @@ class Field:
     def create_type(self):
         pass
 
+    @abc.abstractmethod
+    def validate(self):
+        pass
+
 
 class StringField(Field):
     create_type = SQLITE3_TYPES.TEXT.value
+
+    def validate(self, value):
+        return type(value ) == str
 
 
 class NumberField(Field):
@@ -47,6 +54,12 @@ class NumberField(Field):
 class IntField(NumberField):
     create_type = SQLITE3_TYPES.INTEGER.value
 
+    def validate(self, value):
+        return type(value) == int
+
 
 class FloatField(NumberField):
     create_type = SQLITE3_TYPES.REAL.value
+
+    def validate(self, value):
+        return type(value) == float

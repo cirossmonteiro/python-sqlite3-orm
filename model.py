@@ -1,3 +1,5 @@
+import abc
+
 class Model:
     def __init__(self):
         fields = set(dir(self.__class__)) - set(dir(Model))
@@ -15,3 +17,7 @@ class Model:
 
     def __repr__(self):
         return f"<Model name={self.name} fields=[{self.fields}]"
+
+    @abc.abstractmethod
+    def validate(self):
+        pass
