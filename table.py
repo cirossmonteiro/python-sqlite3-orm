@@ -4,6 +4,7 @@ import copy
 import enum
 import re
 import sqlite3
+import time
 import typing
 
 from schema import Schema
@@ -23,23 +24,72 @@ class SQLTable:
     limit = 10
     offset = 0
     columns = []
+    is_foreign = False
+    pending_migrations = []
     
-    def __init__(self, db: sql.SQLDatabase, tablename: str, schema: Schema = None):
+    def __init__(self, db: sql.SQLDatabase, **kwargs):
         """
         cursor: Cursor object (sqlite3)
         table_name: name for table (even if already exists)
         """
         self.db = db
-        self.tablename = tablename
 
-        if schema is None:
-            self.schema = self._load_schema()
+        is_foreign     = kwargs.get('foreign', False)
+        tablename      = kwargs.get('tablename', None)
+        schema: Schema = kwargs.get('schema', None)
+
+        must_create = False
+
+        if is_foreign:
+            if schema is None:
+                schema = Schema(schema={
+                    'primary_key': int,
+                    'foreign_key': int
+                })
+                local = kwargs.get('local', None)
+                foreign = kwargs.get('foreign', None)
+                if local is None:
+                    raise RuntimeError("You must provide local Model name.")
+                if foreign is None:
+                    raise RuntimeError("You must provide foreign Model name.")
+                if tablename is None:
+                    pass
+                else:
+                    raise RuntimeWarning("Table name provided will be ignored.")
+                tablename = f"{local}__fk__{foreign}"
+                # now create a relationship table
+            else:
+                raise RuntimeError("You can't set schema for a table intended for foreign key.")
         else:
-            self.schema = schema
+            if tablename is None:
+                raise RuntimeError("A table name must be provided.")
+            schema_loaded: Schema = self._load_schema(tablename) # todo
+            if schema is None:
+                if schema_loaded is None:
+                    raise RuntimeError("A schema must be provided.")
+                else:
+                    schema = schema_loaded
+            else:
+                if schema_loaded is None:
+                    must_create = True
+                else:
+                    if schema == schema_loaded:
+                        pass
+                    else:
+                        self.pending_migrations = schema_loaded.makemigrations(schema)
+                        raise RuntimeError(f"""
+                            Schema provided({schema}) doesn't match current schema ({schema_loaded}) of table.
+                            You must run migrations found for this table.
+                        """)
+            # now create a normal table
+
+        self.schema    = schema
+        self.tablename = tablename
+        if must_create:
             self._create_table()
         
     def __deepcopy__(self, _):
-        new_instance = SQLTable(self.db, self.tablename)        
+        new_instance = SQLTable(self.db, tablename=self.tablename)        
         new_instance.and_filter = self.and_filter[:]
         new_instance.indexes = self.indexes
         new_instance.limit = self.limit
@@ -47,9 +97,12 @@ class SQLTable:
         new_instance.columns = self.columns[:]
         return new_instance
 
-    def _load_schema(self):
-        self.db.cursor.execute(f'SELECT sql FROM sqlite_master WHERE type = \'table\' AND name = \'{self.tablename}\';')
-        describe_str = self.db.cursor.fetchone()[0];
+    def _load_schema(self, tablename):
+        fetch = self.db.query_one(f"SELECT sql FROM sqlite_master WHERE type = \'table\' AND name = \'{tablename}\';")
+        if fetch is None:
+            return None
+
+        describe_str = fetch[0]
         patt = re.compile(SCHEMA_TYPES_REGEX)
         schema = {}
         for group in patt.finditer(describe_str):
@@ -63,7 +116,7 @@ class SQLTable:
 
 
     def _create_table(self):
-        self.db.cursor.execute(self._query_create_table())
+        self.db.query_one(self._query_create_table())
 
 
     def _query_insert_into(self, rows: list[typing.Dict]):
@@ -75,8 +128,7 @@ class SQLTable:
         return f"""INSERT INTO {self.tablename} VALUES {values_str};"""
 
     def insert_into(self, values: list[typing.Dict]):
-        self.db.cursor.execute(self._query_insert_into(values))
-        self.db.connection.commit()
+        self.db.query_one(self._query_insert_into(values))
 
     def _query_columns(self):
         if len(self.columns) == 0:
@@ -102,8 +154,7 @@ class SQLTable:
         return f"""SELECT {columns_str} FROM {self.tablename} WHERE {where_str} LIMIT {limit} OFFSET {offset};"""
 
     def select(self):
-        self.db.cursor.execute(self._query_select())
-        return self.db.cursor.fetchall()
+        return self.db.query_all(self._query_select())
 
     def __getitem__(self, params: typing.Union[slice, int, str, list(str)]):
         if self.indexes is not None:
@@ -144,19 +195,20 @@ class SQLTable:
     def count(self):
         where_str = self._query_where()
         query = f"""SELECT COUNT(*) FROM {self.tablename} WHERE {where_str};"""
-        self.db.cursor.execute(query)
-        return self.db.cursor.fetchall()[0][0]
+        return self.db.query_one(query)[0]
 
     def __len__(self):
         return self.count()
 
-    def __getattr__(self, column_name):
-        if column_name in self.schema.columns:
+    def __getattr__(self, name):
+        if name == 'schema':
+            return self.schema
+        elif name in self.schema.columns:
             new_instance = copy.deepcopy(self)
-            new_instance.columns.append(column_name)
+            new_instance.columns.append(name)
             return new_instance
         else:
-            raise RuntimeError(f"Column '{column_name}' doesn't exist on this table.")
+            raise RuntimeError(f"Column '{name}' doesn't exist on this table.")
 
     def filter(self, **kwargs):
         operators = {
@@ -187,3 +239,18 @@ class SQLTable:
         new_instance = copy.deepcopy(self)
         new_instance.and_filter = and_filter
         return new_instance
+
+    def makemigrations(self):
+        print(239, 'table.makemigrations', self.tablename)
+        return self.pending_migrations
+
+    # def __del__(self):
+    #     self.db.delete_table(self.tablename)
+    #     del self.tablename
+    #     del self.schema
+    #     del self.and_filter
+    #     del self.indexes
+    #     del self.limit
+    #     del self.offset
+    #     del self.columns
+    #     del self.is_foreign

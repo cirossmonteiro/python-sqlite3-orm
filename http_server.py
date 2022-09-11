@@ -54,7 +54,10 @@ class HTTPServerHandler(BaseHTTPRequestHandler):
         POST /
         """
         tablename = path[1:]
-        table = self.db[tablename]
+        try:
+            table = self.db[tablename]
+        except RuntimeError:
+            table = None
         if table is None:
             schema = Schema(mode='row', schema=data)
             self.db[tablename] = schema

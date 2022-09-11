@@ -63,3 +63,9 @@ class FloatField(NumberField):
 
     def validate(self, value):
         return type(value) == float
+
+class ForeignKeyField(IntField):
+
+    def __init__(self, model_related, required=True, default=None):
+        self.model_related = model_related
+        super().__init__(required=required, default=default)

@@ -23,10 +23,10 @@ class TestSQLTable(TestCase):
                 'string_text': 'Hello, world!'
             }
         self.rows = [self.row(n) for n in range(1, 6)]
-        self.instance = sql.SQLTable(self.db, self.tablename, self.schema)
+        self.instance = sql.SQLTable(self.db, tablename=self.tablename, schema=self.schema)
 
     def test_init(self):
-        self.assertIsInstance(self.instance.db.cursor, sqlite3.Cursor)
+        #self.assertIsInstance(self.instance.db.cursor, sqlite3.Cursor)
         self.assertIsInstance(self.instance, sql.SQLTable)
 
     def test_query_create_table(self):
@@ -44,8 +44,8 @@ class TestSQLTable(TestCase):
         )
 
         # testing SQLTable._load_schema()
-        new_instance = sql.SQLTable(self.db, self.tablename)
-        self.assertEqual(self.instance.schema.schema, new_instance.schema.schema)
+        new_instance = sql.SQLTable(self.db, tablename=self.tablename)
+        self.assertEqual(self.instance.schema, new_instance.schema)
 
     def test_insert_select(self):
         self.assertEqualStringQueries(

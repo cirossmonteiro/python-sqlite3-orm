@@ -16,6 +16,7 @@ class TestCase(unittest.TestCase):
         self.db = sql.SQLDatabase(self.filename)
         if self.setUpExtra is not None:
             self.setUpExtra()
+            
     
     def tearDown(self):
         os.remove(self.filename)
