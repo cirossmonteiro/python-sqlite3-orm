@@ -8,7 +8,8 @@ class Field(metaclass=abc.ABCMeta):
             raise RuntimeWarning("You should't need to set a default value for a required field.")
         elif not required and default is None:
             raise RuntimeError("You must set a default value for a non-required field.")
-        
+        elif type(required) != bool:
+            raise RuntimeError("Required is boolean.")
         self.required = required
         self.default = default
 
@@ -69,3 +70,15 @@ class ForeignKeyField(IntField):
     def __init__(self, model_related, required=True, default=None):
         self.model_related = model_related
         super().__init__(required=required, default=default)
+
+class RelatedField(IntField):
+
+    def set_first(self, first):
+        self.first = first
+        
+    def __init__(self, model, **kwargs):
+        self.second = model.__name__
+        super().__init__(**kwargs)
+
+    def __repr__(self):
+        return f"<RelatedField first=\"{self.first}\" second=\"{self.second}\" >"
