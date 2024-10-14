@@ -23,6 +23,14 @@ def create_tables(name, fields):
         );\n"""
     return query
 
+MAP_OP = dict(
+    eq="=",
+    ne="!=",
+    gt=">",
+    ge=">=",
+    lt="<",
+    le="<="
+)
 
 class Objects:
     def __init__(self, name, fields):
@@ -48,9 +56,14 @@ class QuerySet:
     def _where(self, columns=None):
         if columns is None:
             columns = self.fields.keys()
+        kwargs, items = self.kwargs.copy(), self.kwargs.items()
+        for key, value in items:
+            if key.find("_") == -1:
+                kwargs[f"{key}_eq"] = value
+                del kwargs[key]
         return " AND ".join([
-            f"{key} = {value}"  # to-do: other conditions
-            for key, value in self.kwargs.items()
+            f"{key.split('_')[0]} {MAP_OP[key.split('_')[1]]} {value}"  # to-do: other conditions
+            for key, value in kwargs.items()
             if key in columns
         ])
 
@@ -70,7 +83,6 @@ class QuerySet:
     
     def values(self, columns=None):
         # to-do: need to SELECT id in nonRelated
-        # to-do: refactor in WHERE
         con = sqlite3.connect("db.sqlite3", autocommit=True)
 
         # general columns
