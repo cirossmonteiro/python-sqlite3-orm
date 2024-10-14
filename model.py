@@ -4,6 +4,9 @@ from field import *
 
 reserved = ["make_migration", "fields", "objects", 'create', "filter", "get", "build_objects"]
 
+def escape_str(v):
+    return str(v) if type(v) != str else f"\"{v}\""
+
 def create_tables(name, fields):
     del fields["fields"]["id"]
     fields["nonRelated"].pop()
@@ -41,9 +44,27 @@ class QuerySet:
         self.fields = fields
         self.sliced = sliced
         self.kwargs = kwargs
+
+    def update(self, **values):
+        con = sqlite3.connect("db.sqlite3", autocommit=True)
+        values_str = ",".join([f"{key} = {value}" for key, value in values.items()])
+        kwargs_str = " AND ".join([
+            f"{key} = {value}"  # to-do: other conditions
+            for key, value in self.kwargs.items()
+        ])
+        if kwargs_str == "":
+            kwargs_str = "1"
+        query = f"""
+            UPDATE {self.name}
+            SET {values_str}
+            WHERE {kwargs_str}
+        """
+        con.execute(query)
+        con.close()
     
     def values(self, columns=None):
         # to-do: need to SELECT id in nonRelated
+        # to-do: refactor in WHERE
         con = sqlite3.connect("db.sqlite3", autocommit=True)
 
         # general columns
@@ -62,7 +83,7 @@ class QuerySet:
         if nonRelated_str == "":
             nonRelated_str = "id"
         nonRelated_kwargs_str = " AND ".join([
-            f"{key} = {value}"  # to-do: other conditions
+            f"{key} = {escape_str(value)}"  # to-do: other conditions
             for key, value in self.kwargs.items()
             if key in nonRelated
         ])
@@ -82,7 +103,7 @@ class QuerySet:
         # related columns
         related = [col for col in columns if col in self.fields["related"]]
         related_kwargs_str = " AND ".join([
-            f"{key} = {value}"
+            f"{key} = {escape_str(value)}"
             for key, value in self.kwargs.items()
             if key in related
         ])
@@ -94,7 +115,7 @@ class QuerySet:
             field = self.fields["fields"][col]
             rel_table = f"relationship_{field.first}_{col}_{field.second}"
             joins_str += f"""
-                LEFT JOIN {rel_table} rt{index}
+                FULL JOIN {rel_table} rt{index}
                 ON t.id = rt{index}.first
             """
         select_str = ",".join([f"GROUP_CONCAT(rt{index}.second)" for index in range(len(related))])
@@ -120,7 +141,9 @@ class QuerySet:
                 if col in nonRelated:
                     final_row[index_col] = nonRelated_rows[index_row][nonRelated.index(col)]
                 elif col in related:
-                    final_row[index_col] = [int(v) for v in related_rows[index_row][related.index(col)].split(',')]
+                    values = related_rows[index_row][related.index(col)]
+                    final_row[index_col] = [] if values is None else [int(v) for v in values.split(',')]
+
             final_rows.append(final_row)
         
         con.close()
@@ -143,12 +166,18 @@ class QuerySet:
     def __getattr__(self, name):
         # to-do: add validation step
         if name not in self.fields["fields"] and name not in self.fields["related"]:
-            raise Exception("Column doesn't exist.")
+            raise AttributeError("Column doesn't exist.")
         if name == "id":
             return self.values(name)[0][0]
         else:
             return self.values(name)[0][1]
-    # done
+    
+    def __setattribute__(self, name, value):
+        # to-do: add validation step
+        if name not in self.fields["fields"] and name not in self.fields["related"]:
+            raise AttributeError("Column doesn't exist.")
+        self.update(**{ name: value })
+
     def create(self, **kwargs):
         f = self.fields
         for key, value in f["fields"].items():
@@ -163,26 +192,26 @@ class QuerySet:
         query = f"""
             INSERT INTO {self.name}
             ({",".join(keys)})
-            VALUES ({",".join([str(v) if type(v) != str else f"\"{v}\"" for v in values])});
+            VALUES ({",".join([escape_str(v) for v in values])});
         """
         con = sqlite3.connect("db.sqlite3", autocommit=True)
         con.execute(query)
         last_id = next(con.execute("SELECT last_insert_rowid()"))[0]
-        con.close()
 
         for related in f["related"]:
             field = f["fields"][related]
             values = kwargs[related]
+            if len(values) == 0:
+                continue
             # to-do: accept queryset
             query = f"""
                 INSERT INTO relationship_{field.first}_{related}_{field.second}
                 (first, second)
-                VALUES {",".join([f"({last_id}, {value})" for value in values])};
-            """
-            con = sqlite3.connect("db.sqlite3", autocommit=True)
+                VALUES {",".join([f"({last_id}, {escape_str(value)})" for value in values])};
+            """    
             # print(193, query)
             con.execute(query)
-            con.close()
+        con.close()
 
         return self.get(id=last_id)
 

@@ -10,6 +10,7 @@ class TestModel(model.Model):
 @model.builder
 class AnotherTestModel(TestModel):
     fieldForeignkeyfield = field.RelatedField(TestModel)
+    fieldForeignkeyfield2 = field.RelatedField(TestModel)
 
 ModelExportation = [
     TestModel,

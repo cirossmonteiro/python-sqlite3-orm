@@ -34,6 +34,8 @@ class Test(TestCase):
         self.assertEqual(test11.fieldIntfield, 1)
         self.assertEqual(test11.fieldFloatfield, 2.5)
         self.assertEqual(test11.fieldStringfield, "Hello, world!")
+        test11.fieldStringfield = "Hello, there!"
+        self.assertEqual(test11.fieldStringfield, "Hello, there!")
 
         test12 = models.ModelExportation[0].objects.create(
             fieldIntfield=2,
@@ -45,10 +47,12 @@ class Test(TestCase):
             fieldIntfield=1,
             fieldFloatfield=2.5,
             fieldStringfield="Hello, world!",
-            fieldForeignkeyfield=[test11.id,test12.id]
+            fieldForeignkeyfield=[test11.id,test12.id],
+            fieldForeignkeyfield2=[]
         )
         self.assertEqual(test2.id, 1)
         self.assertListEqual(test2.fieldForeignkeyfield, [test11.id,test12.id])
+        self.assertListEqual(test2.fieldForeignkeyfield2, [])
             
 
 if __name__ == '__main__':
