@@ -45,13 +45,19 @@ class QuerySet:
         self.sliced = sliced
         self.kwargs = kwargs
 
+    def _where(self, columns=None):
+        if columns is None:
+            columns = self.fields.keys()
+        return " AND ".join([
+            f"{key} = {value}"  # to-do: other conditions
+            for key, value in self.kwargs.items()
+            if key in columns
+        ])
+
     def update(self, **values):
         con = sqlite3.connect("db.sqlite3", autocommit=True)
         values_str = ",".join([f"{key} = {value}" for key, value in values.items()])
-        kwargs_str = " AND ".join([
-            f"{key} = {value}"  # to-do: other conditions
-            for key, value in self.kwargs.items()
-        ])
+        kwargs_str = self._where()
         if kwargs_str == "":
             kwargs_str = "1"
         query = f"""
@@ -82,11 +88,7 @@ class QuerySet:
         nonRelated_str = ",".join(nonRelated)
         if nonRelated_str == "":
             nonRelated_str = "id"
-        nonRelated_kwargs_str = " AND ".join([
-            f"{key} = {escape_str(value)}"  # to-do: other conditions
-            for key, value in self.kwargs.items()
-            if key in nonRelated
-        ])
+        nonRelated_kwargs_str = self._where(nonRelated)
         if nonRelated_kwargs_str == "":
             nonRelated_kwargs_str = "1"
         nonRelated_query = f"""
@@ -102,11 +104,7 @@ class QuerySet:
 
         # related columns
         related = [col for col in columns if col in self.fields["related"]]
-        related_kwargs_str = " AND ".join([
-            f"{key} = {escape_str(value)}"
-            for key, value in self.kwargs.items()
-            if key in related
-        ])
+        related_kwargs_str = self._where(related)
         if related_kwargs_str == "":
             related_kwargs_str = "1"
         select_str = ""
