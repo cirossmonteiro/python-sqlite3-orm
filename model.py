@@ -32,53 +32,98 @@ MAP_OP = dict(
     le="<="
 )
 
-class Objects:
-    def __init__(self, name, fields):
-        self.name = name
-        self.fields = fields
-
-    def create(self, **kwargs):
-        query = f"""
-            INSERT INTO {self.name} ({",".join(kwargs.keys())})
-            VALUES ({",".join(kwargs.values())});
-        """
-        con = sqlite3.connect("db.sqlite3", autocommit=True)
-        con.execute(query)
-        con.close()
-
 class QuerySet:
     def __init__(self, name, fields, sliced=slice(0, 10, 1), kwargs={}):
-        self.name = name
-        self.fields = fields
-        self.sliced = sliced
-        self.kwargs = kwargs
+        super().__setattr__("name", name)
+        super().__setattr__("fields", fields) # basic information about table schema
+        super().__setattr__("sliced", sliced) # slice(x,y,z) == [x:y;z]: LIMIT + OFFSET
+        super().__setattr__("kwargs", kwargs) # WHERE conditions
 
-    def _where(self, columns=None):
+    def _where(self, columns=None, **options):
+        # to-do: modifier of column: example => t.example
+        # to-do: OR condition
+        columns = options.get("columns", None)
+        before = options.get("before", "")
         if columns is None:
             columns = self.fields.keys()
+        for column in self.kwargs.keys():
+            if column in self.fields["related"]:
+                raise Exception("WHERE with related columns is not supported yet.", column)
+
         kwargs, items = self.kwargs.copy(), self.kwargs.items()
         for key, value in items:
             if key.find("_") == -1:
                 kwargs[f"{key}_eq"] = value
                 del kwargs[key]
         return " AND ".join([
-            f"{key.split('_')[0]} {MAP_OP[key.split('_')[1]]} {value}"  # to-do: other conditions
+            f"{before}{key.split('_')[0]} {MAP_OP[key.split('_')[1]]} {value}"  # to-do: other conditions
             for key, value in kwargs.items()
             if key in columns
         ])
 
     def update(self, **values):
+        # for column in values.keys():
+        #     if column in self.fields["related"]:
+        #         raise Exception("Updating related columns is not supported yet.")
+
         con = sqlite3.connect("db.sqlite3", autocommit=True)
-        values_str = ",".join([f"{key} = {value}" for key, value in values.items()])
+
+        # nonRelated columns
+        values_str = ",".join([
+            f"{key} = {escape_str(value)}" for key, value in values.items()
+            if key in self.fields["nonRelated"]
+        ])
         kwargs_str = self._where()
         if kwargs_str == "":
             kwargs_str = "1"
-        query = f"""
-            UPDATE {self.name}
-            SET {values_str}
-            WHERE {kwargs_str}
-        """
-        con.execute(query)
+        if values_str != "":
+            query = f"""
+                UPDATE {self.name}
+                SET {values_str}
+                WHERE {kwargs_str};
+            """
+            con.execute(query)
+
+        # related columns
+        f = self.fields
+        query = ""
+        for related in [column for column in values if column in f["related"]]:
+            delete = insert = ""
+            field = f["fields"][related]
+
+            # remove current state of relationships
+            kwargs_str = self._where(before="t.")
+            if kwargs_str == "":
+                kwargs_str = "1"
+            delete = f"""
+                DELETE FROM relationship_{field.first}_{related}_{field.second}
+                WHERE id IN (SELECT id WHERE {kwargs_str});
+            """
+            
+            # get list of IDs to build new relationships according to WHERE
+            select = f"""
+                SELECT id FROM {self.name}
+                WHERE {kwargs_str};
+            """
+            rows = con.execute(select).fetchall()
+
+            # build new relationships
+            if len(rows) > 0 and len(values[related]) > 0:
+                insert = f"""
+                    INSERT INTO relationship_{field.first}_{related}_{field.second}
+                    (first, second)
+                    VALUES {",".join([
+                        ",".join([
+                            f"({row[0]}, {escape_str(obj.id)})"
+                            for obj in values[related]
+                        ])
+                        for row in rows
+                    ])};
+                """
+                con.execute(insert);
+            query += delete + insert
+        if query != "":
+            con.executescript(query)
         con.close()
     
     def values(self, columns=None):
@@ -100,7 +145,7 @@ class QuerySet:
         nonRelated_str = ",".join(nonRelated)
         if nonRelated_str == "":
             nonRelated_str = "id"
-        nonRelated_kwargs_str = self._where(nonRelated)
+        nonRelated_kwargs_str = self._where(columns=nonRelated)
         if nonRelated_kwargs_str == "":
             nonRelated_kwargs_str = "1"
         nonRelated_query = f"""
@@ -116,7 +161,7 @@ class QuerySet:
 
         # related columns
         related = [col for col in columns if col in self.fields["related"]]
-        related_kwargs_str = self._where(related)
+        related_kwargs_str = self._where(columns=related)
         if related_kwargs_str == "":
             related_kwargs_str = "1"
         select_str = ""
@@ -175,16 +220,16 @@ class QuerySet:
     
     def __getattr__(self, name):
         # to-do: add validation step
-        if name not in self.fields["fields"] and name not in self.fields["related"]:
+        if name not in self.fields["fields"]:
             raise AttributeError("Column doesn't exist.")
         if name == "id":
             return self.values(name)[0][0]
         else:
             return self.values(name)[0][1]
     
-    def __setattribute__(self, name, value):
+    def __setattr__(self, name, value):
         # to-do: add validation step
-        if name not in self.fields["fields"] and name not in self.fields["related"]:
+        if name not in self.fields["fields"]:
             raise AttributeError("Column doesn't exist.")
         self.update(**{ name: value })
 
@@ -196,6 +241,7 @@ class QuerySet:
             elif key in f["related"] and type(kwargs[key]) != list:
                 raise Exception(f"Column '{key}' must be a list.")
 
+        # nonRelated columns
         keys = [key for key in kwargs.keys() if key in f["nonRelated"]]
         values = [kwargs[key] for key in keys]
 
@@ -206,21 +252,23 @@ class QuerySet:
         """
         con = sqlite3.connect("db.sqlite3", autocommit=True)
         con.execute(query)
+
         last_id = next(con.execute("SELECT last_insert_rowid()"))[0]
 
+        # related columns
+        query = ""
         for related in f["related"]:
             field = f["fields"][related]
             values = kwargs[related]
             if len(values) == 0:
                 continue
             # to-do: accept queryset
-            query = f"""
+            query += f"""
                 INSERT INTO relationship_{field.first}_{related}_{field.second}
                 (first, second)
-                VALUES {",".join([f"({last_id}, {escape_str(value)})" for value in values])};
+                VALUES {",".join([f"({last_id}, {escape_str(obj.id)})" for obj in values])};
             """    
-            # print(193, query)
-            con.execute(query)
+        con.executescript(query)
         con.close()
 
         return self.get(id=last_id)

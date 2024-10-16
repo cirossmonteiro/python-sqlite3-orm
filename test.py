@@ -47,12 +47,14 @@ class Test(TestCase):
             fieldIntfield=1,
             fieldFloatfield=2.5,
             fieldStringfield="Hello, world!",
-            fieldForeignkeyfield=[test11.id,test12.id],
+            fieldForeignkeyfield=[test11,test12],
             fieldForeignkeyfield2=[]
         )
         self.assertEqual(test2.id, 1)
         self.assertListEqual(test2.fieldForeignkeyfield, [test11.id,test12.id])
         self.assertListEqual(test2.fieldForeignkeyfield2, [])
+        test2.fieldForeignkeyfield = [test12,test11]
+        self.assertListEqual(test2.fieldForeignkeyfield, [test12.id, test11.id])
             
 
 if __name__ == '__main__':
