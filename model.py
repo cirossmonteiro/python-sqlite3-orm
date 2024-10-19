@@ -62,9 +62,9 @@ class QuerySet:
         ])
 
     def update(self, **values):
-        # for column in values.keys():
-        #     if column in self.fields["related"]:
-        #         raise Exception("Updating related columns is not supported yet.")
+        for column in values.keys():
+            if column not in self.fields["fields"]:
+                raise Exception("Column doesn't exist in schema.")
 
         con = sqlite3.connect("db.sqlite3", autocommit=True)
 
@@ -137,6 +137,9 @@ class QuerySet:
             columns = [*self.fields["nonRelated"], *self.fields["related"]]
         elif type(columns) != list:
             raise Exception("bad columns variable: ", columns)
+        for column in columns:
+            if column not in self.fields["fields"]:
+                raise AttributeError("Column doesn't exist in current schema.")
         if "id" not in columns:
             columns.insert(0, "id")
 
@@ -220,8 +223,6 @@ class QuerySet:
     
     def __getattr__(self, name):
         # to-do: add validation step
-        if name not in self.fields["fields"]:
-            raise AttributeError("Column doesn't exist.")
         if name == "id":
             return self.values(name)[0][0]
         else:
@@ -229,8 +230,6 @@ class QuerySet:
     
     def __setattr__(self, name, value):
         # to-do: add validation step
-        if name not in self.fields["fields"]:
-            raise AttributeError("Column doesn't exist.")
         self.update(**{ name: value })
 
     def create(self, **kwargs):
@@ -262,7 +261,6 @@ class QuerySet:
             values = kwargs[related]
             if len(values) == 0:
                 continue
-            # to-do: accept queryset
             query += f"""
                 INSERT INTO relationship_{field.first}_{related}_{field.second}
                 (first, second)
@@ -293,8 +291,18 @@ class Model:
             if isinstance(field_class, RelatedField):
                 fields[field].set_first(self.__name__)
 
-        related = [field for field, field_class in fields.items() if isinstance(field_class, RelatedField) and field not in reserved]
-        nonRelated = [field for field, field_class in fields.items() if not isinstance(field_class, RelatedField) and field not in reserved]
+        related = [
+            field
+            for field, field_class in fields.items()
+            if isinstance(field_class, RelatedField)
+                and field not in reserved
+        ]
+        nonRelated = [
+            field
+            for field, field_class in fields.items() 
+            if not isinstance(field_class, RelatedField)
+                and field not in reserved
+        ]
 
         for field in related:
             fields[field].set_first(self.__name__)

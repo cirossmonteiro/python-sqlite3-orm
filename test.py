@@ -4,6 +4,7 @@ import shutil
 import unittest
 
 from test_commons import TestCase
+import field
 
 from makemigrations import main as makemigrations
 from migrate import main as migrate
@@ -14,16 +15,29 @@ class Test(TestCase):
         with open('mock/models.py') as fh_read:
             with open('models.py', 'w') as fh_write:
                 fh_write.write(fh_read.read())
+        makemigrations()
+        migrate()
     
     def tearDown(self):
         # careful here
         os.remove('models.py')
         os.remove("db.sqlite3")
-        shutil.rmtree('./migrations/') 
+        shutil.rmtree('./migrations/')
+    
+    def test_fields(self):
+        self.fieldIntField = field.IntField()
+        self.assertTrue(self.fieldIntField.validate(1))
+        self.assertFalse(self.fieldIntField.validate(1.0))
+        
+        self.fieldStringfied = field.StringField()
+        self.assertTrue(self.fieldStringfied.validate("hello, world"))
+        self.assertFalse(self.fieldStringfied.validate(1))
+        
+        self.fieldFloatField = field.FloatField()
+        self.assertTrue(self.fieldFloatField.validate(1.0))
+        self.assertFalse(self.fieldFloatField.validate(1))
 
     def test_main(self):
-        makemigrations()
-        migrate()
         models = importlib.import_module("models")
 
         test11 = models.ModelExportation[0].objects.create(
