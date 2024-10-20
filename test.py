@@ -3,15 +3,14 @@ import os
 import shutil
 import unittest
 
-from test_commons import TestCase
 import field
 
 from makemigrations import main as makemigrations
 from migrate import main as migrate
 
-class Test(TestCase):
+class Test(unittest.TestCase):
     
-    def setUpExtra(self):
+    def setUp(self):
         with open('mock/models.py') as fh_read:
             with open('models.py', 'w') as fh_write:
                 fh_write.write(fh_read.read())
