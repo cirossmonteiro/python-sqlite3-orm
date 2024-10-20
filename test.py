@@ -8,6 +8,10 @@ import field
 from makemigrations import main as makemigrations
 from migrate import main as migrate
 
+import sqlite3
+
+print(sqlite3.sqlite_version)
+
 class Test(unittest.TestCase):
     
     def setUp(self):
