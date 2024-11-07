@@ -1,6 +1,7 @@
 import importlib
 import os
 import shutil
+import sys
 import unittest
 
 import field
@@ -10,7 +11,8 @@ from migrate import main as migrate
 
 import sqlite3
 
-print(sqlite3.sqlite_version)
+print('sqlite3 version', sqlite3.sqlite_version)
+print('python version', sys.version)
 
 class Test(unittest.TestCase):
     

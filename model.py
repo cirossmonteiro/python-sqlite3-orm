@@ -213,12 +213,15 @@ class QuerySet:
     def get(self, **kwargs):
         return self.filter(**kwargs)[0]
     
+    def first(self):
+        return self.filter()[0]
+    
     def __getitem__(self, key):
         if type(key) == int:
-            key = slice(0, key)
+            key = slice(0, key) # return an object
         elif type(key) == str:
-            return self.values(key)
-        return QuerySet(self.name, self.fields, key, self.kwargs)
+            return self.values(key) # return fields of object
+        return QuerySet(self.name, self.fields, key, self.kwargs) # return a QuerySet
         
     
     def __getattr__(self, name):
